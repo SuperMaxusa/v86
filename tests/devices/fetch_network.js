@@ -99,6 +99,20 @@ const tests =
         },
     },
     {
+        name: "nslookup",
+        timeout: 60,
+        start: () =>
+        {
+            emulator.serial0_send("nslookup example.org\n");
+            emulator.serial0_send("echo -e done\\\\tnslookup\n");
+        },
+        end_trigger: "done\tnslookup",
+        end: (capture) =>
+        {
+            assert(/Name: {6}example.org\nAddress 1: 192.168.87.1/.test(capture), "example.org is 192.168.87.1");
+        },
+    },    
+    {
         name: "Curl mocked.example.org",
         timeout: 60,
         allow_failure: true,
