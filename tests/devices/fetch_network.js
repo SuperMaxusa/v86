@@ -111,7 +111,7 @@ const tests =
         {
             assert(/Name: {6}example.org\nAddress 1: 192.168.87.1/.test(capture), "example.org is 192.168.87.1");
         },
-    },    
+    },
     {
         name: "Curl mocked.example.org",
         timeout: 60,
