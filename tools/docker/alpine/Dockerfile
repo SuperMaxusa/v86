@@ -1,17 +1,9 @@
-FROM docker.io/i386/alpine:3.20.0
+FROM docker.io/i386/alpine:3.20.2
 
 ENV KERNEL=lts
 ENV ADDPKGS=nodejs
 
-RUN apk add openrc alpine-base agetty alpine-conf $ADDPKGS
-
-RUN if [ "$KERNEL" == "lts" ]; then \
-    apk add linux-lts \
-            linux-firmware-none \
-            linux-firmware-sb16; \
-else \
-    apk add linux-$KERNEL; \
-fi
+RUN apk add linux-$KERNEL linux-firmware-none openrc alpine-base agetty alpine-conf $ADDPKGS
 
 RUN sed -i 's/getty 38400 tty1/agetty --autologin root tty1 linux/' /etc/inittab
 RUN echo 'ttyS0::respawn:/sbin/agetty --autologin root -s ttyS0 115200 vt100' >> /etc/inittab
@@ -19,11 +11,8 @@ RUN echo "root:" | chpasswd
 
 RUN setup-hostname localhost
 
-# Adding networking.sh script (works only on lts kernel yet)
-RUN if [ "$KERNEL" == "lts" ]; then \
-    echo -e "rmmod ne2k-pci && modprobe ne2k-pci\nhwclock -s\nsetup-interfaces -a -r" > /root/networking.sh && \
-    chmod +x /root/networking.sh; \
-fi
+# Adding networking.sh script
+RUN echo -e "rmmod ne2k-pci && modprobe ne2k-pci\nhwclock -s\nsetup-interfaces -a -r" > /root/networking.sh && chmod +x /root/networking.sh
 
 RUN echo 'console.log("Hello, world!");' > /root/hello.js
 
