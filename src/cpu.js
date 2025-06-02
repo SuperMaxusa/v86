@@ -2397,6 +2397,8 @@ CPU.prototype.debug_init = function()
 
     debug.dump_code = function(is_32, buffer, start)
     {
+        if(!DEBUG) return;
+
         if(!capstone_decoder)
         {
             if(cs === undefined)
@@ -2458,6 +2460,8 @@ CPU.prototype.debug_init = function()
 
     debug.dump_wasm = function(buffer)
     {
+        if(!DEBUG) return;
+
         /* global require */
         if(wabt === undefined)
         {
