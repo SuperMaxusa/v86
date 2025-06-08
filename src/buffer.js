@@ -723,7 +723,7 @@ export function buffer_from_object(obj, zstd_decompress_worker)
 
         if(obj.use_parts)
         {
-            return new AsyncXHRPartfileBuffer(obj.url, obj.size, obj.fixed_chunk_size, false, zstd_decompress_worker);
+            return new AsyncXHRPartfileBuffer(obj.url, obj.size, obj.fixed_chunk_size, obj.partfile_alt_format, zstd_decompress_worker);
         }
         else
         {
