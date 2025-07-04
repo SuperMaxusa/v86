@@ -102,10 +102,8 @@ h4 {
     margin-bottom: 10px;
     outline: 1px solid #555;
 }
-#boot_options a {
-    text-decoration: none;
+#oses a {
     font-weight: bold;
-    font-size: 16px;
 }
 #boot_options td, #boot_options th {
     padding: 1px 7px;
@@ -174,6 +172,9 @@ input[type=checkbox] {
     position: relative;
     bottom: 1px;
     margin: 0;
+}
+input[type=number] {
+    width: 75px;
 }
 #filter label {
     background-color: #444;

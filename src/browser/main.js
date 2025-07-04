@@ -1,8 +1,9 @@
 import { V86 } from "./starter.js";
 import { LOG_NAMES } from "../const.js";
-import { SyncFileBuffer } from "../buffer.js";
+import { SyncBuffer, SyncFileBuffer } from "../buffer.js";
 import { pad0, pads, hex_dump, dump_file, download, round_up_to_next_power_of_2 } from "../lib.js";
 import { log_data, LOG_LEVEL, set_log_level } from "../log.js";
+import * as iso9660 from "../iso9660.js";
 
 
 const ON_LOCALHOST = !location.hostname.endsWith("copy.sh");
@@ -46,6 +47,16 @@ function format_timestamp(time)
             pad0((time / 60 | 0) % 60, 2) + "m " +
             pad0(time % 60, 2) + "s";
     }
+}
+
+function read_file(file)
+{
+    return new Promise((resolve, reject) => {
+        const fr = new FileReader();
+        fr.onload = () => resolve(fr.result);
+        fr.onerror = e => reject(e);
+        fr.readAsArrayBuffer(file);
+    });
 }
 
 let progress_ticks = 0;
@@ -154,7 +165,7 @@ function onload()
             name: "Arch Linux",
             memory_size: 512 * 1024 * 1024,
             vga_memory_size: 8 * 1024 * 1024,
-            state: { url: host + "arch_state-v2.bin.zst" },
+            state: { url: host + "arch_state-v3.bin.zst" },
             filesystem: {
                 baseurl: host + "arch/",
             },
@@ -584,7 +595,7 @@ function onload()
                 fixed_chunk_size: 1024 * 1024,
                 use_parts: true,
             },
-            state: { url: host + "openbsd_state.bin.zst" },
+            state: { url: host + "openbsd_state-v2.bin.zst" },
             memory_size: 256 * 1024 * 1024,
             name: "OpenBSD",
         },
@@ -786,7 +797,7 @@ function onload()
                 use_parts: true,
             },
             name: "Windows 2000",
-            state: { url: host + "windows2k_state-v3.bin.zst" },
+            state: { url: host + "windows2k_state-v4.bin.zst" },
             mac_address_translation: true,
         },
         {
@@ -862,7 +873,7 @@ function onload()
                 use_parts: true,
             },
             name: "Windows 98",
-            state: { url: host + "windows98_state.bin.zst" },
+            state: { url: host + "windows98_state-v2.bin.zst" },
             mac_address_translation: true,
         },
         {
@@ -973,7 +984,7 @@ function onload()
                 fixed_chunk_size: 1024 * 1024,
                 use_parts: true,
             },
-            state: { url: host + "freebsd_state.bin.zst" },
+            state: { url: host + "freebsd_state-v2.bin.zst" },
             name: "FreeBSD",
         },
         {
@@ -992,16 +1003,17 @@ function onload()
             id: "reactos",
             memory_size: 512 * 1024 * 1024,
             hda: {
-                url: host + "reactos-v2/.img",
-                size: 681574400,
+                url: host + "reactos-v3/.img",
+                size: 734003200,
                 async: true,
                 fixed_chunk_size: 1024 * 1024,
                 use_parts: true,
             },
-            state: { url: host + "reactos_state-v2.bin.zst" },
+            state: { url: host + "reactos_state-v3.bin.zst" },
             mac_address_translation: true,
             name: "ReactOS",
             acpi: true,
+            net_device_type: "virtio",
             homepage: "https://reactos.org/",
         },
         {
@@ -1419,7 +1431,7 @@ function onload()
         },
         {
             id: "netboot.xyz",
-            name: "iPXE",
+            name: "netboot.xyz",
             cdrom: {
                 url: host + "netboot.xyz.iso",
                 size: 2398208,
@@ -1427,6 +1439,30 @@ function onload()
             },
             homepage: "https://netboot.xyz/",
             net_device_type: "virtio",
+        },
+        {
+            id: "squeaknos",
+            name: "SqueakNOS",
+            cdrom: {
+                url: host + "SqueakNOS.iso",
+                size: 61171712,
+                async: false,
+            },
+            memory_size: 512 * 1024 * 1024,
+            homepage: "https://squeaknos.blogspot.com/"
+        },
+        {
+            id: "chokanji4",
+            name: "Chokanji 4",
+            hda: {
+                url: host + "chokanji4/.img.zst",
+                size: 10737418240,
+                async: true,
+                fixed_chunk_size: 256 * 1024,
+                use_parts: true,
+            },
+            memory_size: 512 * 1024 * 1024,
+            homepage: "https://archive.org/details/brightv4000"
         },
     ];
 
@@ -1512,15 +1548,7 @@ function onload()
         if(query_args.has("hda.url") || query_args.has("cdrom.url") || query_args.has("fda.url"))
         {
             start_emulation(null, query_args);
-        }
-        else
-        {
-            if(query_args.has("m")) $("memory_size").value = query_args.get("m");
-            if(query_args.has("vram")) $("vga_memory_size").value = query_args.get("vram");
-            if(query_args.has("relay_url")) $("relay_url").value = query_args.get("relay_url");
-            if(query_args.has("mute")) $("disable_audio").checked = bool_arg(query_args.get("mute"));
-            if(query_args.has("acpi")) $("acpi").checked = bool_arg(query_args.get("acpi"));
-            if(query_args.has("boot_order")) $("boot_order").value = query_args.get("boot_order");
+            return;
         }
     }
     else if(/^[a-zA-Z0-9\-_]+\/[a-zA-Z0-9\-_]+$/g.test(profile))
@@ -1555,6 +1583,33 @@ function onload()
 
                 start_emulation(profile, query_args);
             });
+    }
+
+    if(query_args.has("m")) $("memory_size").value = query_args.get("m");
+    if(query_args.has("vram")) $("vga_memory_size").value = query_args.get("vram");
+    if(query_args.has("relay_url")) $("relay_url").value = query_args.get("relay_url");
+    if(query_args.has("mute")) $("disable_audio").checked = bool_arg(query_args.get("mute"));
+    if(query_args.has("acpi")) $("acpi").checked = bool_arg(query_args.get("acpi"));
+    if(query_args.has("boot_order")) $("boot_order").value = query_args.get("boot_order");
+
+    for(const dev of ["hda", "hdb"])
+    {
+        const toggle = $(dev + "_toggle_empty_disk");
+        if(!toggle) continue;
+
+        toggle.onclick = function(e)
+        {
+            e.preventDefault();
+            const input = document.createElement("input");
+            input.id = dev + "_empty_size";
+            input.type = "number";
+            input.min = "1";
+            input.value = "100";
+            // TODO (when closure compiler supports it): parent.parentNode.replaceChildren(...);
+            const parent = toggle.parentNode;
+            parent.innerHTML = "";
+            parent.append("Empty disk of ", input, " MB");
+        };
     }
 
     const os_info = Array.from(document.querySelectorAll("#oses tbody tr")).map(element =>
@@ -1747,7 +1802,7 @@ if(document.readyState === "complete")
 }
 
 // we can get here in various ways:
-// - the user clicked on the "start emulation"
+// - the user clicked on the "start emulation" button
 // - the user clicked on a profile
 // - the ?profile= query parameter specified a valid profile
 // - the ?profile= query parameter was set to "custom" and at least one disk image was given
@@ -1774,6 +1829,7 @@ function start_emulation(profile, query_args)
         settings.fda = profile.fda;
         settings.cdrom = profile.cdrom;
         settings.hda = profile.hda;
+        settings.hdb = profile.hdb;
         settings.multiboot = profile.multiboot;
         settings.bzimage = profile.bzimage;
         settings.initrd = profile.initrd;
@@ -1823,6 +1879,33 @@ function start_emulation(profile, query_args)
                     fixed_chunk_size: chunk_size,
                     async: true,
                 };
+            }
+            else if(query_args.has("hda.empty"))
+            {
+                const empty_size = parseInt(query_args.get("hda.empty"), 10);
+                if(empty_size > 0)
+                {
+                    settings.hda = { buffer: new ArrayBuffer(empty_size) };
+                }
+            }
+
+            if(query_args.has("hdb.url"))
+            {
+                settings.hdb = {
+                    size: parseInt(query_args.get("hdb.size"), 10) || undefined,
+                    // TODO: synchronous if small?
+                    url: query_args.get("hdb.url"),
+                    fixed_chunk_size: chunk_size,
+                    async: true,
+                };
+            }
+            else if(query_args.has("hdb.empty"))
+            {
+                const empty_size = parseInt(query_args.get("hdb.empty"), 10);
+                if(empty_size > 0)
+                {
+                    settings.hdb = { buffer: new ArrayBuffer(empty_size) };
+                }
             }
 
             if(query_args.has("cdrom.url"))
@@ -1902,15 +1985,29 @@ function start_emulation(profile, query_args)
         {
             settings.cdrom = { buffer: cdrom };
         }
-        const hda = $("hda_image").files[0];
+        const hda = $("hda_image")?.files[0];
         if(hda)
         {
             settings.hda = { buffer: hda };
+        }
+        const hda_empty_size = +$("hda_empty_size")?.value;
+        if(hda_empty_size)
+        {
+            const size = hda_empty_size * 1024 * 1024;
+            settings.hda = { buffer: new ArrayBuffer(size) };
+            new_query_args.set("hda.empty", String(size));
         }
         const hdb = $("hdb_image")?.files[0];
         if(hdb)
         {
             settings.hdb = { buffer: hdb };
+        }
+        const hdb_empty_size = +$("hdb_empty_size")?.value;
+        if(hdb_empty_size)
+        {
+            const size = hdb_empty_size * 1024 * 1024;
+            settings.hdb = { buffer: new ArrayBuffer(hdb_empty_size * 1024 * 1024) };
+            new_query_args.set("hdb.empty", String(size));
         }
         const multiboot = $("multiboot_image")?.files[0];
         if(multiboot)
@@ -1955,7 +2052,7 @@ function start_emulation(profile, query_args)
         {
             settings.boot_order = boot_order;
         }
-        if(settings.boot_order !== DEFAULT_BOOT_ORDER) new_query_args.set("boot_order", String(settings.boot_order));
+        if(settings.boot_order !== DEFAULT_BOOT_ORDER) new_query_args.set("boot_order", settings.boot_order.toString(16));
 
         if(settings.acpi === undefined)
         {
@@ -2079,6 +2176,14 @@ function start_emulation(profile, query_args)
         }
     });
 
+    emulator.add_listener("emulator-loaded", function()
+    {
+        if(!emulator.v86.cpu.devices.cdrom)
+        {
+            $("change_cdrom_image").style.display = "none";
+        }
+    });
+
     emulator.add_listener("download-progress", function(e)
     {
         show_progress(e);
@@ -2134,7 +2239,9 @@ function init_ui(profile, settings, emulator)
     $("exit").onclick = function()
     {
         emulator.destroy();
-        location.href = location.pathname;
+        const url = new URL(location.href);
+        url.searchParams.delete("profile");
+        location.href = url.pathname + url.search;
     };
 
     $("lock_mouse").onclick = function()
@@ -2154,7 +2261,7 @@ function init_ui(profile, settings, emulator)
     {
         mouse_is_enabled = !mouse_is_enabled;
 
-        emulator.mouse_set_status(mouse_is_enabled);
+        emulator.mouse_set_enabled(mouse_is_enabled);
         $("toggle_mouse").value = (mouse_is_enabled ? "Dis" : "En") + "able mouse";
         $("toggle_mouse").blur();
     };
@@ -2343,6 +2450,7 @@ function init_ui(profile, settings, emulator)
 
         elem.onclick = function(e)
         {
+            // XXX: the filename is a bit confusing for empty disks (it chooses the profile name)
             const filename = buffer.file && buffer.file.name || ((profile?.id || "v86") + (type === "cdrom" ? ".iso" : ".img"));
 
             if(buffer.get_as_file)
@@ -2393,6 +2501,53 @@ function init_ui(profile, settings, emulator)
             file_input.click();
         }
         $("change_fda_image").blur();
+    };
+
+    $("change_cdrom_image").value = settings.cdrom ? "Eject CD image" : "Insert CD image";
+    $("change_cdrom_image").onclick = function()
+    {
+        if(emulator.v86.cpu.devices.cdrom.has_disk())
+        {
+            emulator.eject_cdrom();
+            $("change_cdrom_image").value = "Insert CD image";
+        }
+        else
+        {
+            const file_input = document.createElement("input");
+            file_input.type = "file";
+            file_input.multiple = "multiple";
+            file_input.onchange = async function(e)
+            {
+                const files = file_input.files;
+                let buffer;
+
+                if(files.length === 1 && files[0].name.endsWith(".iso"))
+                {
+                    buffer = files[0];
+                }
+                else if(files.length)
+                {
+                    const files2 = [];
+                    for(const file of files)
+                    {
+                        files2.push({
+                            name: file.name,
+                            contents: new Uint8Array(await read_file(file)),
+                        });
+
+                    }
+                    buffer = iso9660.generate(files2).buffer;
+                }
+
+                if(buffer)
+                {
+                    await emulator.set_cdrom({ buffer });
+                    $("change_cdrom_image").value = "Eject CD image";
+                }
+            };
+            file_input.click();
+        }
+        $("change_cdrom_image").blur();
     };
 
     $("memory_dump").onclick = function()
@@ -2745,25 +2900,23 @@ function debug_start(emulator)
     }
 
     // called as soon as soon as emulation is started, in debug mode
-    var debug = emulator.v86.cpu.debug;
+    const cpu = emulator.v86.cpu;
 
-    $("dump_gdt").onclick = debug.dump_gdt_ldt.bind(debug);
-    $("dump_idt").onclick = debug.dump_idt.bind(debug);
-    $("dump_regs").onclick = debug.dump_regs.bind(debug);
-    $("dump_pt").onclick = debug.dump_page_structures.bind(debug);
+    $("dump_gdt").onclick = cpu.dump_gdt_ldt.bind(cpu);
+    $("dump_idt").onclick = cpu.dump_idt.bind(cpu);
+    $("dump_regs").onclick = () => { cpu.dump_regs_short(); cpu.dump_state(); };
+    $("dump_pt").onclick = cpu.dump_page_structures.bind(cpu);
 
     $("dump_log").onclick = function()
     {
         dump_file(log_data.join(""), "v86.log");
     };
 
-    var cpu = emulator.v86.cpu;
-
     $("debug_panel").style.display = "block";
     setInterval(function()
     {
         $("debug_panel").textContent =
-            cpu.debug.get_regs_short().join("\n") + "\n" + cpu.debug.get_state();
+            cpu.get_regs_short().join("\n") + "\n" + cpu.debug_get_state();
 
         $("dump_log").value = "Dump log" + (log_data.length ? " (" + log_data.length + " lines)" : "");
     }, 1000);

@@ -280,7 +280,6 @@ if(cluster.isPrimary)
         },
         {
             name: "MS-DOS",
-            skip_if_disk_image_missing: true,
             hda: root_path + "/images/msdos.img",
             timeout: 90,
             expected_texts: [
@@ -289,7 +288,6 @@ if(cluster.isPrimary)
         },
         {
             name: "MS-DOS (hard disk + floppy disk)",
-            skip_if_disk_image_missing: true,
             hda: root_path + "/images/msdos.img",
             fda: root_path + "/images/kolibri.img",
             boot_order: 0x132,
@@ -547,6 +545,38 @@ if(cluster.isPrimary)
             expect_mouse_registered: true,
         },
         {
+            name: "Arch Linux (with fda, cdrom, hda and hdb)",
+            skip_if_disk_image_missing: true,
+            timeout: 5 * 60,
+            bzimage_initrd_from_filesystem: true,
+            memory_size: 512 * 1024 * 1024,
+            cmdline: [
+                "rw apm=off vga=0x344 video=vesafb:ypan,vremap:8",
+                "root=host9p rootfstype=9p rootflags=trans=virtio,cache=loose mitigations=off",
+                "audit=0 init=/usr/bin/init-openrc net.ifnames=0 biosdevname=0",
+            ].join(" "),
+            filesystem: {
+                basefs: "images/fs.json",
+                baseurl: "images/arch/",
+            },
+            hda: root_path + "/images/w95.img",
+            hdb: root_path + "/images/FiwixOS-3.4-i386.img",
+            cdrom: root_path + "/images/dsl-4.11.rc2.iso",
+            fda: root_path + "/images/freedos722.img",
+            actions: [
+                {
+                    on_text: "root@localhost",
+                    run: "modprobe floppy && mkdir /mnt/{a,b,c,f} && mount /dev/sda1 /mnt/a && mount /dev/sdb2 /mnt/b && mount /dev/sr0 /mnt/c && mount /dev/fd0 /mnt/f && ls /mnt/*\n",
+                },
+            ],
+            expected_texts: [
+                "bin   dev  home",                          // fiwix
+                " AUTOEXEC.BAT   CONFIG.WIN   MSDOS.SYS",   // w95
+                "KNOPPIX  boot  index.html",                // DSL
+                "FDOS          README      debug.com",      // freedos
+            ],
+        },
+        {
             name: "FreeGEM",
             skip_if_disk_image_missing: true,
             timeout: 60,
@@ -585,6 +615,7 @@ if(cluster.isPrimary)
                 { after: 7 * 60 * 1000, run: "\n" },
                 { after: 8 * 60 * 1000, run: "\n" },
             ],
+            acpi: true,
         },
         {
             name: "9front",
@@ -871,17 +902,30 @@ if(cluster.isPrimary)
             actions: [{ on_text: "                   BIOS default device boot in", run: "\n", after: 5000 }],
         },
         {
-            name: "Core 9 (with floppy disk)",
+            name: "Core 9 (with hard disk)",
             skip_if_disk_image_missing: 1,
             timeout: 5 * 60,
             cdrom: root_path + "/images/experimental/os/Core-9.0.iso",
             fda: root_path + "/images/freedos722.img",
-            boot_order: 0x132,
+            boot_order: 0x213,
             actions: [
                 { on_text: "boot:", run: "\n" },
                 { on_text: "tc@box", run: "sudo mount /dev/fd0 /mnt && ls /mnt\n" },
             ],
             expected_texts: ["AUTOEXEC.BAT"],
+        },
+        {
+            name: "Core 9 (with hard disk)",
+            skip_if_disk_image_missing: 1,
+            timeout: 5 * 60,
+            cdrom: root_path + "/images/experimental/os/Core-9.0.iso",
+            hda: root_path + "/images/TinyCore-11.0.iso",
+            boot_order: 0x213,
+            actions: [
+                { on_text: "boot:", run: "\n" },
+                { on_text: "tc@box", run: "sudo mount /dev/sda1 /mnt && ls /mnt\n" },
+            ],
+            expected_texts: ["boot/ cde/"],
         },
         {
             name: "Core 8",
@@ -1049,7 +1093,6 @@ function run_test(test, done)
         autostart: true,
         memory_size: test.memory_size || 128 * 1024 * 1024,
         log_level: +process.env.LOG_LEVEL || 0,
-        cmdline: test.cmdline,
     };
 
     if(test.cdrom)
@@ -1063,6 +1106,10 @@ function run_test(test, done)
     if(test.hda)
     {
         settings.hda = { url: test.hda, async: true };
+    }
+    if(test.hdb)
+    {
+        settings.hdb = { url: test.hdb, async: true };
     }
     if(test.bzimage)
     {

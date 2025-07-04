@@ -92,12 +92,12 @@
 
             <tr>
                 <td><label for="hda_image">Hard disk image</label></td>
-                <td><input type="file" id="hda_image"><br></td>
+                <td><input type="file" id="hda_image"> or <a id="hda_toggle_empty_disk">create empty disk</a><br></td>
             </tr>
 
             <tr>
                 <td>Second hard disk image</td>
-                <td><input type="file" id="hdb_image"><br></td>
+                <td><input type="file" id="hdb_image"> or <a id="hdb_toggle_empty_disk">create empty disk</a><br></td>
             </tr>
 
             <tr>
@@ -212,6 +212,7 @@
         <input type="button" value="Get second hard disk image" id="get_hdb_image">
         <input type="button" value="Get CD-ROM image" id="get_cdrom_image">
         <input type="button" value="Insert floppy image" id="change_fda_image">
+        <input type="button" value="Insert CD image" id="change_cdrom_image">
         <input type="button" value="Save State" id="save_state">
         <input type="button" value="Load State" id="load_state"> <input type="file" style="display: none" id="load_state_input">
         <input type="button" value="Memory Dump" id="memory_dump">
