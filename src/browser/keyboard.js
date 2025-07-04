@@ -1,8 +1,6 @@
 // For Types Only
 import { BusConnector } from "../bus.js";
 
-import { IS_MOBILE } from "../lib.js";
-
 const SHIFT_SCAN_CODE = 0x2A;
 const SCAN_CODE_RELEASE = 0x80;
 
@@ -265,18 +263,22 @@ export function KeyboardAdapter(bus)
         }
         this.destroy();
 
-        if(IS_MOBILE)
-        {
-            window.addEventListener("input", input_handler, false);
-        }
-        else
-        {
-            window.addEventListener("keyup", keyup_handler, false);
-            window.addEventListener("keydown", keydown_handler, false);
-            window.addEventListener("blur", blur_handler, false);
-        }
+        window.addEventListener("keyup", keyup_handler, false);
+        window.addEventListener("keydown", keydown_handler, false);
+        window.addEventListener("blur", blur_handler, false);
     };
     this.init();
+
+    this.init_mobile = function()
+    {
+        if(typeof window === "undefined")
+        {
+            return;
+        }
+        this.destroy();
+
+        window.addEventListener("input", input_handler, false);
+    };
 
     this.simulate_press = function(code)
     {
@@ -433,6 +435,14 @@ export function KeyboardAdapter(bus)
 
         if(!may_handle(e))
         {
+            return;
+        }
+
+        if(e.key === "Process" || e.key === "Unidentified" || e.keyCode === 229)
+        {
+            // Enable "input" event handler for mobile browsers and virtual keyboards
+            // XXX: can be triggered by any IME keyboard, not just mobile
+            keyboard.init_mobile();
             return;
         }
 
