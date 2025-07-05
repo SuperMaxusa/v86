@@ -486,7 +486,7 @@ export function KeyboardAdapter(bus)
     }
 
     /**
-     * @param {KeyboardEvent|InputEvent|Object} e
+     * @param {KeyboardEvent|Object} e
      * @param {boolean} keydown
      */
     function handle_event(e, keydown)
