@@ -314,6 +314,11 @@ export interface V86Options {
     disable_jit?: boolean;
 
     /**
+     * set UTC base date for rtc
+     */
+    utc_base?: Date;
+
+    /**
      * The url of a server running websockproxy
      * Deprecated in favor of the net_device config below
      */

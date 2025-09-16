@@ -60,7 +60,7 @@ export const BOOT_ORDER_FD_FIRST = 0x321;
  * @constructor
  * @param {CPU} cpu
  */
-export function RTC(cpu)
+export function RTC(cpu, rtc_base)
 {
     /** @const @type {CPU} */
     this.cpu = cpu;
@@ -69,8 +69,8 @@ export function RTC(cpu)
     this.cmos_data = new Uint8Array(128);
 
     // used for cmos entries
-    this.rtc_time = Date.now();
-    this.last_update = this.rtc_time;
+    this.rtc_time = +rtc_base || Date.now();
+    this.last_update = Date.now();
 
     // used for periodic interrupt
     this.next_interrupt = 0;

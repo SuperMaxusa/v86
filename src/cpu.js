@@ -1166,7 +1166,7 @@ CPU.prototype.init = function(settings, device_bus)
             this.devices.acpi = new ACPI(this);
         }
 
-        this.devices.rtc = new RTC(this);
+        this.devices.rtc = new RTC(this, settings.utc_base);
         this.fill_cmos(this.devices.rtc, settings);
 
         this.devices.dma = new DMA(this);

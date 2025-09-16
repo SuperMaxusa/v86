@@ -235,6 +235,7 @@ V86.prototype.continue_init = async function(emulator, options)
     settings.cpuid_level = options.cpuid_level;
     settings.virtio_balloon = options.virtio_balloon;
     settings.virtio_console = options.virtio_console;
+    settings.utc_base = options.utc_base;
 
     const relay_url = options.network_relay_url || options.net_device && options.net_device.relay_url;
     if(relay_url)
