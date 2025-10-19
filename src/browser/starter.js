@@ -235,6 +235,8 @@ V86.prototype.continue_init = async function(emulator, options)
     settings.cpuid_level = options.cpuid_level;
     settings.virtio_balloon = options.virtio_balloon;
     settings.virtio_console = options.virtio_console;
+    settings.serial_mouse = options.serial_mouse;
+    settings.serial_mouse_port = options.serial_mouse_port || 1;
 
     const relay_url = options.network_relay_url || options.net_device && options.net_device.relay_url;
     if(relay_url)
@@ -303,6 +305,11 @@ V86.prototype.continue_init = async function(emulator, options)
     if(!options.disable_speaker)
     {
         this.speaker_adapter = new SpeakerAdapter(this.bus);
+    }
+
+    if(settings.serial_mouse && settings.serial_mouse_port !== 0)
+    {
+        settings["uart" + settings.serial_mouse_port] = true;
     }
 
     // ugly, but required for closure compiler compilation

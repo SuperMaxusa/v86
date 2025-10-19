@@ -32,6 +32,7 @@ import { VirtioNet } from "./virtio_net.js";
 import { VGAScreen } from "./vga.js";
 import { VirtioBalloon } from "./virtio_balloon.js";
 import { Virtio9p, Virtio9pHandler, Virtio9pProxy } from "../lib/9p.js";
+import { SerialMouse } from "./serial_mouse.js";
 
 import { load_kernel } from "./kernel.js";
 
@@ -573,6 +574,8 @@ CPU.prototype.get_state = function()
     state[83] = this.devices.virtio_net;
     state[84] = this.devices.virtio_balloon;
 
+    state[86] = this.devices.serial_mouse;
+
     return state;
 };
 
@@ -740,6 +743,8 @@ CPU.prototype.set_state = function(state)
     this.devices.virtio_console && this.devices.virtio_console.set_state(state[82]);
     this.devices.virtio_net && this.devices.virtio_net.set_state(state[83]);
     this.devices.virtio_balloon && this.devices.virtio_balloon.set_state(state[84]);
+
+    this.devices.serial_mouse && this.devices.serial_mouse.set_state(state[86]);
 
     this.fw_value = state[62];
 
@@ -1173,7 +1178,7 @@ CPU.prototype.init = function(settings, device_bus)
 
         this.devices.vga = new VGAScreen(this, device_bus, settings.screen, settings.vga_memory_size || 8 * 1024 * 1024);
 
-        this.devices.ps2 = new PS2(this, device_bus);
+        this.devices.ps2 = new PS2(this, device_bus, !settings.serial_mouse);
 
         this.devices.uart0 = new UART(this, 0x3F8, device_bus);
 
@@ -1232,6 +1237,11 @@ CPU.prototype.init = function(settings, device_bus)
         if(settings.virtio_balloon)
         {
             this.devices.virtio_balloon = new VirtioBalloon(this, device_bus);
+        }
+
+        if(settings.serial_mouse)
+        {
+            this.devices.serial_mouse = new SerialMouse(this, this.devices["uart" + settings.serial_mouse_port], device_bus);
         }
 
         if(true)
