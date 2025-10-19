@@ -302,6 +302,18 @@ export interface V86Options {
     virtio_console?: boolean;
 
     /**
+     * create a Microsoft Serial Mouse device (disables PS/2 mouse)
+     * @default false
+     */
+    serial_mouse?: boolean;
+
+    /**
+     * set a COM port for serial mouse
+     * @default 1
+     */
+    serial_mouse_port?: number;
+
+    /**
      * override the maximum supported cpuid level
      * used for some versions of Windows, see docs/windows-nt.md
      */
