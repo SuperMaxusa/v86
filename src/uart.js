@@ -266,6 +266,7 @@ export function UART(cpu, port, bus)
     {
         dbg_log("modem control: " + h(out_byte), LOG_SERIAL);
         this.modem_control = out_byte;
+        this.on_mcr_change && this.on_mcr_change(out_byte); // for serial mouse
     });
 
     io.register_read(port | 5, this, function()
