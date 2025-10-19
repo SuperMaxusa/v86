@@ -29,6 +29,8 @@ list of emulated hardware:
 - An NE2000 (RTL8390) PCI network card.
 - Various virtio devices: Filesystem, network and balloon.
 - A SoundBlaster 16 sound card.
+- An 16550 UART serial port (up to 4 ports).
+  - Microsoft Serial Mouse with middle button.
 
 ## Demos
 
