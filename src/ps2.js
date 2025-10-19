@@ -13,14 +13,18 @@ const PS2_LOG_VERBOSE = false;
  * @constructor
  * @param {CPU} cpu
  * @param {BusConnector} bus
+ * @param {boolean} have_mouse
  */
-export function PS2(cpu, bus)
+export function PS2(cpu, bus, have_mouse)
 {
     /** @const @type {CPU} */
     this.cpu = cpu;
 
     /** @const @type {BusConnector} */
     this.bus = bus;
+
+    /** @type {boolean} */
+    this.have_mouse = have_mouse;
 
     this.reset();
 
@@ -61,9 +65,6 @@ PS2.prototype.reset = function()
 
     /** @type {boolean} */
     this.use_mouse = false;
-
-    /** @type {boolean} */
-    this.have_mouse = true;
 
     /** @type {number} */
     this.mouse_delta_x = 0;
