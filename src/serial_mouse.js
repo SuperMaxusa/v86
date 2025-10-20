@@ -6,7 +6,7 @@ import { BusConnector } from "./bus.js";
 import { CPU } from "./cpu.js";
 import { UART } from "./uart.js";
 
-const RESET_DATA = [0x4D, 0x33]; // "M3" ID
+const RESET_DATA = new Uint8Array([0x4D, 0x33]); // "M3" ID
 
 /**
  * Microsoft Serial Mouse
@@ -35,12 +35,16 @@ export function SerialMouse(cpu, serial, bus)
 
     this.last_toggle = false;
 
-    this.buffer = new Uint8Array(4);
+    this.buffer = new Uint8Array(3);
 
     this.bus.register("mouse-click", function(data)
     {
         this.buttons = data;
         this.send_mouse_packet(0, 0);
+        if(data[1])
+        {
+            this.send_middle_button_press();
+        }
     }, this);
 
     this.bus.register("mouse-delta", function(data)
@@ -129,15 +133,18 @@ SerialMouse.prototype.send_mouse_packet = function(x, y)
 
     // left and right buttons
     this.buffer[0] |= (this.buttons[0] ? 0x20 : 0) | (this.buttons[2] ? 0x10 : 0);
-    // middle button
-    this.buffer[3] = this.buttons[1] ? 0x20 : 0;
 
     this.send_to_serial(this.buffer);
 };
 
+SerialMouse.prototype.send_middle_button_press = function()
+{
+    this.serial.data_received(0x20);
+};
+
 SerialMouse.prototype.send_to_serial = function(data)
 {
-    for(var i = 0; i < data.length; i++)
+    for(var i = 0; i < data.byteLength; i++)
     {
         this.serial.data_received(data[i]);
     }
