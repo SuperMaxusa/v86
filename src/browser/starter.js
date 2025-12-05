@@ -236,7 +236,7 @@ V86.prototype.continue_init = async function(emulator, options)
     settings.virtio_balloon = options.virtio_balloon;
     settings.virtio_console = options.virtio_console;
     settings.serial_mouse = options.serial_mouse;
-    settings.serial_mouse_port = options.serial_mouse_port || 1;
+    settings.serial_mouse_port = options.serial_mouse_port ?? 1;
 
     const relay_url = options.network_relay_url || options.net_device && options.net_device.relay_url;
     if(relay_url)
